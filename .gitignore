@@ -1,0 +1,16 @@
+bin/
+include/
+lib/
+share/
+data/
+simulator/
+.DS_Store
+*.zip
+pip-selfcheck.json
+
+!*.ipynb
+
+.ipynb_checkpoints
+.Python
+
+*.cfg
