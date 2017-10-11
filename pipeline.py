@@ -350,23 +350,36 @@ class Pipeline:
         left_fit = self.left_lane.current_fit
         right_fit = self.right_lane.current_fit
 
+        histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
+
+        plt.plot(histogram)
+
+        y_vals = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+        x_vals = (left_fit[0]*(y_vals**2) + left_fit[1]*y_vals + left_fit[2]).astype(int)
+
+        # super impose previous frames fit-points on the new image to influence the new fit.
+
+
         # Finding lane lines in following frames
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
-        margin = 200
+        margin = 200        
 
-        previous_frame_lane_x_coords = (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2])
+        previous_frame_lane_x_coords = (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2]).astype(int)
+        nonzerox[previous_frame_lane_x_coords] = 1
         left_lane_inds = (
             (nonzerox > (previous_frame_lane_x_coords - margin)) & 
             (nonzerox < (previous_frame_lane_x_coords + margin))
         ) 
 
-        previous_frame_lane_x_coords = (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2])
+        previous_frame_lane_x_coords = (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2]).astype(int)
+        nonzerox[previous_frame_lane_x_coords] = 1
         right_lane_inds = (
             (nonzerox > (previous_frame_lane_x_coords - margin)) & 
             (nonzerox < (previous_frame_lane_x_coords + margin))
         )
+
 
         # Again, extract left and right line pixel positions
         leftx = nonzerox[left_lane_inds]
@@ -377,6 +390,10 @@ class Pipeline:
         # Fit a second order polynomial to each
         left_fit = np.polyfit(lefty, leftx, 2)
         right_fit = np.polyfit(righty, rightx, 2)
+
+        # left_fit = (left_fit * 0.1 + self.left_lane.current_fit * 0.9)
+        # right_fit = (right_fit * 0.1 + self.right_lane.current_fit * 0.9)
+
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
         left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
@@ -387,19 +404,28 @@ class Pipeline:
         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
 
-        self.left_lane.current_fit = left_fit
-        self.right_lane.current_fit = right_fit
+        plt.imshow(out_img)
+        plt.plot(self.left_lane.allx, self.left_lane.ally, color='yellow')
+        plt.plot(self.right_lane.allx, self.right_lane.ally, color='yellow')
 
-        self.left_lane.allx = left_fitx
-        self.left_lane.ally = ploty
+        # self.left_lane.current_fit = left_fit
+        # self.right_lane.current_fit = right_fit
 
-        self.right_lane.allx = right_fitx
-        self.right_lane.ally = ploty
+        # self.left_lane.allx = left_fitx
+        # self.left_lane.ally = ploty
+
+        # self.right_lane.allx = right_fitx
+        # self.right_lane.ally = ploty
+
+        plt.plot(left_fitx, ploty, color='pink')
+        plt.plot(right_fitx, ploty, color='pink')
         
-        self.result_image = out_img
+        # self.result_image = out_img
 
-        self.left_lane.detected = True
-        self.right_lane.detected = True
+        # self.left_lane.detected = True
+        # self.right_lane.detected = True
+
+        plt.show()
         
     def draw_window_on_lanes(self):
         binary_warped = self.image
