@@ -64,6 +64,14 @@ class Pipeline:
         
     def convert_rgb_2_hls(self):
         self.image_hls = cv2.cvtColor(self.image, cv2.COLOR_RGB2HLS)
+
+    def canny(self, image, low_threshold=50, high_threshold=150):
+        """Applies the Canny transform"""
+        return cv2.Canny(image, low_threshold, high_threshold)
+
+    def gaussian_blur(self, image, kernel_size=5):
+        """Applies a Gaussian Noise kernel"""
+        return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
     
     def show_image(self, text="", cmap="gray"):
         image = self.image
@@ -146,13 +154,16 @@ class Pipeline:
         # Choose a Sobel kernel size
         
         # Choose a larger odd number to smooth gradient measurements
-        ksize = 15
+        ksize = 1
         
         # Apply each of the thresholding functions
         gradx = self.abs_sobel_thresh(orient='x', sobel_kernel=ksize, thresh=(20, 100))
         grady = self.abs_sobel_thresh(orient='y', sobel_kernel=ksize, thresh=(20, 100))
         mag_binary = self.mag_thresh(sobel_kernel=ksize, mag_thresh=(20, 100))
         dir_binary = self.dir_thresh(sobel_kernel=ksize, thresh=(0.7, 1.3))
+
+        blur = self.gaussian_blur(self.image)
+        canny = self.canny(blur)
         
         self.convert_rgb_2_hls()
         H = self.image_hls[:,:,0]
@@ -173,17 +184,20 @@ class Pipeline:
         B_binary = binary_threshold_channel(B)
 
 
-        show_image(gradx, text="gx")
-        show_image(grady, text="gy")
-        show_image(mag_binary, text="mag")
-        show_image(dir_binary, text="dir")
+        # show_image(gradx, text="gx")
+        # show_image(grady, text="gy")
+        # show_image(mag_binary, text="mag")
+        # show_image(dir_binary, text="dir")
 
-        show_image(H_binary, text="H_bin")
-        show_image(L_binary, text="L_bin")
-        show_image(S_binary, text="S_bin")
-        show_image(R_binary, text="R_bin")
-        show_image(G_binary, text="G_bin")
-        show_image(B_binary, text="B_bin")
+        # show_image(H_binary, text="H_bin")
+        # show_image(L_binary, text="L_bin")
+        # show_image(S_binary, text="S_bin")
+        # show_image(R_binary, text="R_bin")
+        # show_image(G_binary, text="G_bin")
+        # show_image(B_binary, text="B_bin")
+
+        # show_image(blur, text="blurred")
+        # show_image(canny, text="canny")
         
         thresholded_image = ((R_binary | G_binary | L_binary) & S_binary | (gradx & G_binary & L_binary & dir_binary))
         
@@ -346,16 +360,34 @@ class Pipeline:
         self.right_lane.detected = True
     
     def detect_lane_lines_with_prior(self):
+        def superimpose_previous_lane_fit(binary_warped, fit, margin=50):
+            nonzero = binary_warped.nonzero()
+            nonzeroy = np.array(nonzero[0])
+            y_vals = nonzeroy
+            x_vals = (fit[0]*(y_vals**2) + fit[1]*y_vals + fit[2]).astype(int)
+
+            all_y_vals = [y_vals]*margin
+            all_x_vals = []
+
+            for i, y_vals in enumerate(all_y_vals):
+                x_vals = x_vals + (i * (1 + (i%2*-2)) )
+                all_x_vals.append(x_vals)
+
+            all_x_vals = np.concatenate(all_x_vals)
+            all_y_vals = np.concatenate(all_y_vals)
+
+            binary_warped[all_y_vals, all_x_vals] = 1
+            
+            return binary_warped
+
         binary_warped = self.image
         left_fit = self.left_lane.current_fit
         right_fit = self.right_lane.current_fit
 
-        histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
+        # histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
 
-        plt.plot(histogram)
-
-        y_vals = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-        x_vals = (left_fit[0]*(y_vals**2) + left_fit[1]*y_vals + left_fit[2]).astype(int)
+        binary_warped = superimpose_previous_lane_fit(binary_warped, left_fit)
+        binary_warped = superimpose_previous_lane_fit(binary_warped, right_fit)
 
         # super impose previous frames fit-points on the new image to influence the new fit.
 
@@ -364,7 +396,7 @@ class Pipeline:
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
-        margin = 200        
+        margin = 50        
 
         previous_frame_lane_x_coords = (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2]).astype(int)
         nonzerox[previous_frame_lane_x_coords] = 1
@@ -404,26 +436,26 @@ class Pipeline:
         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
 
-        plt.imshow(out_img)
-        plt.plot(self.left_lane.allx, self.left_lane.ally, color='yellow')
-        plt.plot(self.right_lane.allx, self.right_lane.ally, color='yellow')
+        # plt.imshow(out_img)
+        # plt.plot(self.left_lane.allx, self.left_lane.ally, color='yellow')
+        # plt.plot(self.right_lane.allx, self.right_lane.ally, color='yellow')
 
-        # self.left_lane.current_fit = left_fit
-        # self.right_lane.current_fit = right_fit
+        self.left_lane.current_fit = left_fit
+        self.right_lane.current_fit = right_fit
 
-        # self.left_lane.allx = left_fitx
-        # self.left_lane.ally = ploty
+        self.left_lane.allx = left_fitx
+        self.left_lane.ally = ploty
 
-        # self.right_lane.allx = right_fitx
-        # self.right_lane.ally = ploty
+        self.right_lane.allx = right_fitx
+        self.right_lane.ally = ploty
 
-        plt.plot(left_fitx, ploty, color='pink')
-        plt.plot(right_fitx, ploty, color='pink')
+        # plt.plot(left_fitx, ploty, color='pink')
+        # plt.plot(right_fitx, ploty, color='pink')
         
-        # self.result_image = out_img
+        self.result_image = out_img
 
-        # self.left_lane.detected = True
-        # self.right_lane.detected = True
+        self.left_lane.detected = True
+        self.right_lane.detected = True
 
         plt.show()
         
@@ -537,23 +569,23 @@ class Pipeline:
         # self.show_image(text="RGB")
 
         self.undistort()
-        self.show_image(text="Undistorted")
+        # self.show_image(text="Undistorted")
 
         self.color_gradient_threshold_transform()
-        self.show_image(text="Thresholded")
+        # self.show_image(text="Thresholded")
 
         self.create_mask_corners()
-        self.draw_mask()
+        # self.draw_mask()
 
         self.perspective_transform()
-        self.show_image(text="Perspective Warped image")
+        # self.show_image(text="Perspective Warped image")
         
         if self.left_lane.detected and self.right_lane.detected:
             self.detect_lane_lines_with_prior()
-            self.plot_detect_lanes_with_polygon_window()
+            # self.plot_detect_lanes_with_polygon_window()
         else:
             self.detect_lane_lines()
-            self.plot_detected_lanes()
+            # self.plot_detected_lanes()
 
         self.draw_window_on_lanes()
         
