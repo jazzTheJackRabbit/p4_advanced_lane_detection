@@ -14,25 +14,43 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 show_image_bool=False
+
+
 def show_image(image, cmap="gray", text=""):
+    """
+    Helper function to display image
+    """
     if show_image_bool:
         plt.imshow(image, cmap=cmap)
         plt.text(0,image.shape[0]*1.25,text)
         plt.show()
-        
-def binary_threshold_channel(channel, thresh=(100,255)):
+
+
+def binary_threshold_channel(channel, thresh=(100, 255)):
+    """
+    Helper function to convert an image into a binary image where 1s are intensity values are above a threshold
+    """
     binary = np.zeros_like(channel)
     binary[(channel > thresh[0]) & (channel <= thresh[1])] = 1
     return binary
 
+
 def binary_threshold_channel_flip(channel, thresh=(90,255)):
+    """
+    Helper function to convert an image into a binary image where 0s are intensity values are above a threshold
+    """
     binary = np.ones_like(channel)
     binary[(channel > thresh[0]) & (channel <= thresh[1])] = 0
     return binary
 
+
 def compute_radius_of_curvature(fit, y):
+    """
+    Helper function compute the radius of curvature.
+    """
     A,B,C = fit
     return ((1 + (2*A*y + B)**2)**1.5) / np.absolute(2*A)
+
 
 CONFIG = {
     'mask': {
@@ -64,9 +82,15 @@ class Pipeline:
         self.empty_channel = None
     
     def convert_to_grayscale(self, image):
+        """
+        Convert image from RGB color space to GRAY scale.
+        """
         return cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     
     def read_image(self, image):
+        """
+        Init method to read image from path or image_matrix
+        """
         if type(image) == str:
             self.original_image = cv2.imread(os.path.realpath(image))
             self.convert_bgr_2_rgb()
@@ -76,27 +100,35 @@ class Pipeline:
         self.empty_channel = np.zeros_like(self.original_image[:,:,0])
         
     def convert_bgr_2_rgb(self):
+        """
+        Convert image from BGR color space to RGB color space
+        """
         self.original_image = cv2.cvtColor(self.original_image, cv2.COLOR_BGR2RGB)
         
     def convert_rgb_2_hls(self):
+        """
+        Convert image from RGB color space to HLS color space
+        """
         self.image_hls = cv2.cvtColor(self.image, cv2.COLOR_RGB2HLS)
-
-    def canny(self, image, low_threshold=50, high_threshold=150):
-        """Applies the Canny transform"""
-        return cv2.Canny(image, low_threshold, high_threshold)
-
-    def gaussian_blur(self, image, kernel_size=5):
-        """Applies a Gaussian Noise kernel"""
-        return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
     
     def show_image(self, text="", cmap="gray"):
+        """
+        Show image for current pipeline
+        """
         image = self.image
         show_image(image, text=text, cmap=cmap)
     
     def undistort(self):
+        """
+        Wrapper method around openCV's undistort function to undistor an image given the distortion correction matrix
+        and distortion coefficients.
+        """
         self.image = cv2.undistort(self.image, self.mtx, self.dist_coeff, None, self.mtx)
         
-    def abs_sobel_thresh(self, orient='x', sobel_kernel=3, thresh=(0, 255)):    
+    def abs_sobel_thresh(self, orient='x', sobel_kernel=3, thresh=(0, 255)):
+        """
+        Method to apply the Sobel operator in the X and Y directions and filter values based on exceeding a threshold.
+        """
         # Apply the following steps to img
         # 1) Convert to grayscale
         gray = self.convert_to_grayscale(self.image)
@@ -121,6 +153,10 @@ class Pipeline:
         return sxbinary
 
     def mag_thresh(self, sobel_kernel=3, mag_thresh=(0, 255)):
+        """
+        Method to apply the Sobel operator in both X and Y directions and filter values based on the magnitude in both
+        directions exceeding a threshold.
+        """
         # Apply the following steps to img
         # 1) Convert to grayscale
         gray = self.convert_to_grayscale(self.image)
@@ -138,7 +174,7 @@ class Pipeline:
         scaled_sobel = np.uint8(255*abs_sobel/np.max(abs_sobel))
 
         # 5) Create a mask of 1's where the scaled gradient magnitude 
-                # is > thresh_min and < thresh_max
+        # is > thresh_min and < thresh_max
         binary = np.zeros_like(scaled_sobel)
         binary[(scaled_sobel >= mag_thresh[0]) & (scaled_sobel <= mag_thresh[1])] = 1
 
@@ -146,6 +182,10 @@ class Pipeline:
         return binary
 
     def dir_thresh(self, sobel_kernel=3, thresh=(0, np.pi/2)):
+        """
+        Method to apply the Sobel operator in both X and Y directions and filter values based on the direction of the
+        gradient within the bounds of a threshold pair.
+        """
         # Apply the following steps to img
         # 1) Convert to grayscale
         gray = self.convert_to_grayscale(self.image)
@@ -167,8 +207,12 @@ class Pipeline:
         return binary
     
     def color_gradient_threshold_transform(self):
+        """
+        Method to apply the gradient thresholds and convert the image into different color spaces and convert them into
+        a representative binary image based on exceeding a threshold.
+        """
         # Choose a Sobel kernel size
-        
+
         # Choose a larger odd number to smooth gradient measurements
         ksize = 3
         
@@ -178,8 +222,8 @@ class Pipeline:
         mag_binary = self.mag_thresh(sobel_kernel=ksize, mag_thresh=(20, 100))
         dir_binary = self.dir_thresh(sobel_kernel=15, thresh=(0.7, 1.3))
 
-        blur = self.gaussian_blur(self.image)
-        canny = self.canny(blur)
+        # blur = self.gaussian_blur(self.image)
+        # canny = self.canny(blur)
         
         self.convert_rgb_2_hls()
         H = self.image_hls[:,:,0]
@@ -212,14 +256,17 @@ class Pipeline:
         show_image(G_binary, text="G_bin")
         show_image(B_binary, text="B_bin")
 
-        show_image(blur, text="blurred")
-        show_image(canny, text="canny")
+        # show_image(blur, text="blurred")
+        # show_image(canny, text="canny")
         
         thresholded_image = ((R_binary | G_binary | L_binary) & S_binary | (gradx & G_binary & L_binary & dir_binary))
         
         self.image = thresholded_image
         
     def create_mask_corners(self):
+        """
+        Method to mask regions of the image that are not likely to contain a lane line.
+        """
         xsize = self.image.shape[1]
         ysize = self.image.shape[0] *0.99
 
@@ -235,6 +282,9 @@ class Pipeline:
         self.mask_corners = np.array([i for i in zip(x,y)])
         
     def draw_mask(self):
+        """
+        Method to draw the mask on the image.
+        """
         plt.imshow(self.image,cmap="gray")
         x = self.mask_corners.T[0]
         y = self.mask_corners.T[1]
@@ -242,6 +292,9 @@ class Pipeline:
         plt.show()
         
     def perspective_transform(self):
+        """
+        Method to apply a perspective transformation to convert the camera view into a birds eye view.
+        """
         image = self.image
         corners = self.mask_corners
         
@@ -260,6 +313,15 @@ class Pipeline:
         self.perspective_transform_matrix = M
 
     def detect_lane_lines(self):
+        """
+        Method to use the perspective transformed image to detect lane lines by:
+        - Finding a histogram of raw intensities for the bottom half of the image
+            - Computing the positions of peaks of the image intensities which roughly should correspond to the lane
+            lines.
+            - Step through small windows in the Y direction, by moving the centers of the windows based on the number
+            of pixels within the the window and append the pixels within this image to an array that would potentially
+            identify the lane lines.
+        """
         # * Detect lane pixels and fit to find the lane boundary.
         binary_warped = self.image
         # Assuming you have created a warped binary image called "binary_warped"
@@ -376,6 +438,9 @@ class Pipeline:
         self.right_lane.detected = True
     
     def detect_lane_lines_with_prior(self):
+        """
+        Use the polynomial/curve fit from the previous frame to correct the current frame's detection.
+        """
         def superimpose_previous_lane_fit(binary_warped, fit, margin=25):
             nonzero = binary_warped.nonzero()
             nonzeroy = np.array(nonzero[0])
@@ -477,8 +542,10 @@ class Pipeline:
         
         self.result_image = out_img        
 
-        
     def draw_window_on_lanes(self):
+        """
+        Method to draw the windows around the lane lines.
+        """
         binary_warped = self.image
         left_fit = self.left_lane.current_fit
         right_fit = self.right_lane.current_fit
@@ -510,6 +577,9 @@ class Pipeline:
         self.result_image = cv2.addWeighted(self.result_image, 1, window_img, 1, 0)
         
     def plot_detected_lanes(self):
+        """
+        Plot the detected lane lines on the image.
+        """
         plt.xlim(0, self.image.shape[1])
         plt.ylim(self.image.shape[0], 0)
         plt.imshow(self.result_image)
@@ -519,6 +589,10 @@ class Pipeline:
         
     # * Warp the detected lane boundaries back onto the original image.
     def warp_perspective_to_original(self):
+        """
+        Once the lane and the lane lines are found, this method warps the bird's eye coordinates into the original
+        camera coordinates.
+        """
         binary_warped = self.image
         left_fitx = self.left_lane.allx
         right_fitx = self.right_lane.allx
@@ -550,12 +624,18 @@ class Pipeline:
         self.result_image = result
 
     def compute_radius_of_curvature_for_fit(self):
+        """
+        Compute the radius of curvature for the fit in PIXELS.
+        """
         self.left_lane.radius_of_curvature = compute_radius_of_curvature(self.left_lane.current_fit, np.max(self.left_lane.ally))
         self.right_lane.radius_of_curvature = compute_radius_of_curvature(self.right_lane.current_fit, np.max(self.right_lane.ally))
         print(self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature)
         # Example values: 1926.74 1908.48
 
     def compute_radius_of_curvature_for_fit_in_meters(self):
+        """
+        Compute the radius of curvature for the fit in METERS.
+        """
         # Define conversions in x and y from pixels space to meters
         ym_per_pix = 30/720 # meters per pixel in y dimension
         xm_per_pix = 3.7/700 # meters per pixel in x dimension
@@ -573,6 +653,9 @@ class Pipeline:
         # Example values: 632.1 m    626.2 m
     
     def find_lanes(self, image, show=True):
+        """
+        Main method to run the lane detection pipeline.
+        """
         self.read_image(image)
 
 #         self.convert_bgr_2_rgb()
@@ -597,7 +680,6 @@ class Pipeline:
 
         self.draw_window_on_lanes()
         # self.plot_detected_lanes()
-        
 #         self.compute_radius_of_curvature_for_fit_in_meters()
 
         self.warp_perspective_to_original()
