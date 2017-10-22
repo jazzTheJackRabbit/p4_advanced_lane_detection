@@ -11,9 +11,12 @@ import pickle
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from pdb import set_trace as b
+from report_helper import *
 import matplotlib.image as mpimg
+from matplotlib import pylab
 
-show_image_bool=False
+show_image_bool=True
 
 
 def show_image(image, cmap="gray", text=""):
@@ -290,7 +293,8 @@ class Pipeline:
         y = self.mask_corners.T[1]
         plt.plot(x, y, 'r', lw=1)
         plt.show()
-        
+        # pylab.savefig('./output_images/test-1-mask.png')
+
     def perspective_transform(self):
         """
         Method to apply a perspective transformation to convert the camera view into a birds eye view.
@@ -375,10 +379,10 @@ class Pipeline:
             win_xright_low = rightx_current - margin
             win_xright_high = rightx_current + margin
             # Draw the windows on the visualization image
-            cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
-            (0,255,0), 3) 
-            cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
-            (0,255,0), 3) 
+            # cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
+            # (0,255,0), 3)
+            # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
+            # (0,255,0), 3)
             # Identify the nonzero pixels in x and y within the window
             good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
             (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
@@ -433,7 +437,7 @@ class Pipeline:
         self.right_lane.ally = ploty
         
         self.result_image = out_img
-        
+        # b()
         self.left_lane.detected = True
         self.right_lane.detected = True
     
@@ -458,7 +462,7 @@ class Pipeline:
             all_y_vals = np.concatenate(all_y_vals)
 
             binary_warped[all_y_vals, all_x_vals] = 1
-            
+
             return binary_warped
 
         binary_warped = self.image
@@ -538,7 +542,9 @@ class Pipeline:
         if show_image_bool:
             plt.plot(left_fitx, ploty, color='pink')
             plt.plot(right_fitx, ploty, color='pink')
+            # pylab.savefig('./output_images/test-1-fit')
             plt.show()
+
         
         self.result_image = out_img        
 
@@ -619,7 +625,6 @@ class Pipeline:
         newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])) 
         # Combine the result with the original image
         result = cv2.addWeighted(image, 1, newwarp, 0.3, 0)
-        
         self.image = result
         self.result_image = result
 
@@ -672,18 +677,18 @@ class Pipeline:
 
         self.perspective_transform()
         self.show_image(text="Perspective Warped image")
-        
+
         if self.left_lane.detected and self.right_lane.detected:
             self.detect_lane_lines_with_prior()
         else:
             self.detect_lane_lines()
 
-        self.draw_window_on_lanes()
+        # self.draw_window_on_lanes()
         # self.plot_detected_lanes()
 #         self.compute_radius_of_curvature_for_fit_in_meters()
 
         self.warp_perspective_to_original()
-        
+
         if show:
             self.show_image()
             
