@@ -15,3 +15,4 @@ pip-selfcheck.json
 
 *.cfg
 __pycache__/
+.idea/

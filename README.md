@@ -26,7 +26,7 @@ The following section contains an overview of the structure of the code and addr
 ** Source Code Overview **
 The source code is mainly divided between the following files:
 * `calibrate.py`:
-  * Contains code to calibrate and correct the camera len's distortion
+  * Contains code to calibrate and correct the camera lens' distortion
 
 
 * `pipeline.py`:
@@ -310,10 +310,11 @@ Once we have the first frame's lane line fit, we consider the issues and solutio
 
 > [5] Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-The functions responsible for computing the radius of curvature are as follows:
+The functions responsible for computing the radius of curvature and the camera offsets are as follows:
 
-* `pipeline.Pipeline.compute_radius_of_curvature_for_fit` - Line 631
-* `pipeline.Pipeline.compute_radius_of_curvature_for_fit_in_meters` - Line 640
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit` - Line 633
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit_in_meters` - Line 642
+* `pipeline.Pipeline.compute_camera_offset` - Line 668
 
 > [6] Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 

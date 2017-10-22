@@ -15,7 +15,10 @@ class Line():
         self.best_fit = None  
 
         #polynomial coefficients for the most recent fit
-        self.current_fit = [np.array([False])]  
+        self.current_fit = [np.array([False])]
+
+        # polynomial coefficients for the most recent fit
+        self.current_fit_meters = [np.array([False])]
 
         #radius of curvature of the line in some units
         self.radius_of_curvature = None 

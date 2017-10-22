@@ -16,7 +16,7 @@ from report_helper import *
 import matplotlib.image as mpimg
 from matplotlib import pylab
 
-show_image_bool=True
+show_image_bool=False
 
 
 def show_image(image, cmap="gray", text=""):
@@ -51,6 +51,7 @@ def compute_radius_of_curvature(fit, y):
     """
     Helper function compute the radius of curvature.
     """
+    # b()
     A,B,C = fit
     return ((1 + (2*A*y + B)**2)**1.5) / np.absolute(2*A)
 
@@ -83,6 +84,7 @@ class Pipeline:
         self.result_image = None
         self.image_hls = None
         self.empty_channel = None
+        self.camera_offset = 0
     
     def convert_to_grayscale(self, image):
         """
@@ -654,9 +656,47 @@ class Pipeline:
         self.right_lane.radius_of_curvature = compute_radius_of_curvature(right_fit_cr, np.max(self.right_lane.ally)*ym_per_pix)
 
         # Now our radius of curvature is in meters
-        print(self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature)
+        # print(self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature)
         # Example values: 632.1 m    626.2 m
-    
+
+    def convert_fits_to_meters(self):
+        ym_per_pix = 30 / 720  # meters per pixel in y dimension
+        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+        self.left_lane.current_fit_meters = np.polyfit(self.left_lane.ally * ym_per_pix, self.left_lane.allx * xm_per_pix, 2)
+        self.right_lane.current_fit_meters = np.polyfit(self.right_lane.ally * ym_per_pix, self.right_lane.allx * xm_per_pix, 2)
+
+    def compute_camera_offset(self):
+        # self.convert_fits_to_meters()
+        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+
+        left_fit = self.left_lane.current_fit
+        right_fit = self.right_lane.current_fit
+
+        y_l = np.max(self.left_lane.ally)
+        y_r = np.max(self.right_lane.ally)
+
+        x_l = left_fit[0] * y_l ** 2 + left_fit[1] * y_l + left_fit[2]
+        x_r = right_fit[0] * y_r ** 2 + right_fit[1] * y_r + right_fit[2]
+
+        lane_midpoint = x_l + ((x_r - x_l) / 2)
+
+        image_midpoint = self.image.shape[1]/2
+
+        self.camera_offset = (image_midpoint - lane_midpoint) * xm_per_pix
+
+    def add_text(self):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        avg_lc = np.average([self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature])
+        cv2.putText(self.result_image, 'Left-Lane Curvature: {0:.2f}m'.format(self.left_lane.radius_of_curvature), (10, 100),
+                    font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(self.result_image, 'Right-Lane Curvature: {0:.2f}m'.format(self.right_lane.radius_of_curvature), (10, 150),
+                    font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(self.result_image, 'Lane Curvature: {0:.2f}m'.format(avg_lc),
+                    (10, 200),
+                    font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(self.result_image, 'Camera Offset: {0:.2f}m'.format(self.camera_offset), (10, 250), font, 1,
+                    (255, 255, 255), 2, cv2.LINE_AA)
+
     def find_lanes(self, image, show=True):
         """
         Main method to run the lane detection pipeline.
@@ -685,10 +725,12 @@ class Pipeline:
 
         # self.draw_window_on_lanes()
         # self.plot_detected_lanes()
-#         self.compute_radius_of_curvature_for_fit_in_meters()
+        self.compute_radius_of_curvature_for_fit_in_meters()
+        self.compute_camera_offset()
 
         self.warp_perspective_to_original()
 
+        self.add_text()
         if show:
             self.show_image()
             
