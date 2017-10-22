@@ -85,7 +85,9 @@ class Pipeline:
         self.image_hls = None
         self.empty_channel = None
         self.camera_offset = 0
-    
+        self.radius_array = []
+        self.radius_of_curvature = 0
+
     def convert_to_grayscale(self, image):
         """
         Convert image from RGB color space to GRAY scale.
@@ -381,10 +383,11 @@ class Pipeline:
             win_xright_low = rightx_current - margin
             win_xright_high = rightx_current + margin
             # Draw the windows on the visualization image
-            # cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
-            # (0,255,0), 3)
-            # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
-            # (0,255,0), 3)
+            if show_image_bool:
+                cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
+                (0,255,0), 3)
+                cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
+                (0,255,0), 3)
             # Identify the nonzero pixels in x and y within the window
             good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
             (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
@@ -439,7 +442,13 @@ class Pipeline:
         self.right_lane.ally = ploty
         
         self.result_image = out_img
+
         # b()
+        # plt.imshow(out_img)
+        # plt.plot(self.left_lane.allx, self.left_lane.ally, color='yellow')
+        # plt.plot(self.right_lane.allx, self.right_lane.ally, color='yellow')
+        # pylab.savefig('./output_images/test-f1-fit.png')
+
         self.left_lane.detected = True
         self.right_lane.detected = True
     
@@ -562,7 +571,7 @@ class Pipeline:
         right_fitx = self.right_lane.allx
         ploty = self.left_lane.ally
         
-        margin=50
+        margin=25
         
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
@@ -686,15 +695,11 @@ class Pipeline:
 
     def add_text(self):
         font = cv2.FONT_HERSHEY_SIMPLEX
-        avg_lc = np.average([self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature])
-        cv2.putText(self.result_image, 'Left-Lane Curvature: {0:.2f}m'.format(self.left_lane.radius_of_curvature), (10, 100),
+        avg_lc = np.min([self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature])
+        cv2.putText(self.result_image, 'Radius of Curvature of the Lane: {0:.2f}m'.format(avg_lc),
+                    (50, 100),
                     font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(self.result_image, 'Right-Lane Curvature: {0:.2f}m'.format(self.right_lane.radius_of_curvature), (10, 150),
-                    font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(self.result_image, 'Lane Curvature: {0:.2f}m'.format(avg_lc),
-                    (10, 200),
-                    font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(self.result_image, 'Camera Offset: {0:.2f}m'.format(self.camera_offset), (10, 250), font, 1,
+        cv2.putText(self.result_image, 'Camera Offset: {0:.2f}m'.format(self.camera_offset), (50, 150), font, 1,
                     (255, 255, 255), 2, cv2.LINE_AA)
 
     def find_lanes(self, image, show=True):
@@ -723,7 +728,7 @@ class Pipeline:
         else:
             self.detect_lane_lines()
 
-        # self.draw_window_on_lanes()
+        self.draw_window_on_lanes()
         # self.plot_detected_lanes()
         self.compute_radius_of_curvature_for_fit_in_meters()
         self.compute_camera_offset()
