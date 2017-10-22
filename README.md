@@ -258,14 +258,33 @@ To identify the lane lines I implemented a method to use the perspective transfo
 
     * Once these arrays have all the image pixels that potentially correspond to the lane line points, the problem now becomes a line fitting problem to a distribution of points in a plane.
 
-    <p align="center">
-      <img src="./output_images/test-1-windows.png" width="40%"/>
-      <p align="center">Small windows drawn vertically based on histogram peaks.</p>
-    </p>
+      * 2nd degree polynomials are fit to these sets of points (for each lane line).
 
-    * 2nd degree polynomials are fit to these sets of points (for each lane line).
+      <p align="center">
+        <img src="./output_images/test-1-fit.png" width="40%"/>
+        <p align="center">Polynomial curve fit on the distribution of points</p>
+      </p>
 
     * The current fit is saved for the next frame.
+
+    * Once the lane line polynomial fits are available, the region between the lane lines is colored to represent the lane.
+
+    <p align="center">
+      <img src="./output_images/test-1-perspective-lane-lines.png" width="40%"/>
+      <p align="center">Lane line points with the region of the lane colored green</p>
+    </p>
+
+    * This overlay image is then transformed back into the coordinates of the camera and overlaid on top of the original image for a final result as follows:
+
+    <p align="center">
+      <img src="./output_images/test-1-f1-lane-original.png" width="40%"/>
+      <p align="center">The lane detected transformed back into the original camera coordinates</p>
+    </p>
+    <p align="center">
+      <img src="./output_images/test-1-f1-final.png" width="40%"/>
+      <p align="center">The lane detected on the first frame</p>
+    </p>
+
 
 The part of the code responsible for detecting lines is as follows:
 * `pipeline.Pipeline.detect_lane_lines` - Detects lane line on the first frame
@@ -277,19 +296,43 @@ Once we have the first frame's lane line fit, we consider the issues and solutio
 
 * A solution to this problem was to use the fit from the previous frame and create points along the fit on the new image, so, together with the points in the new frame, the resulting point distribution would be closer to the actual lane line.
 
-* Additionally, instead of re-running the stepping through all the windows, we can use the points from the previous frame's lane line fit and search within a margin.
+<p align="center">
+  <img src="./output_images/test-1-f2-threshold.png" width="40%"/>
+  <p align="center">The second frame's binary thresholded representation</p>
+</p>
 
-![alt text][image5]
+<p align="center">
+  <img src="./output_images/test-1-f2-superimposed.png" width="40%"/>
+  <p align="center">The previous frame's fit points superimposed on the second frame</p>
+</p>
+
+* Additionally, instead of re-running the stepping through all the windows, we can use the points from the previous frame's lane line fit and search within a margin.
 
 > [5] Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+The functions responsible for computing the radius of curvature are as follows:
+
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit` - Line 631
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit_in_meters` - Line 640
 
 > [6] Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Once the lane and the lane lines are detected in the "birds-eye" perspective, the inverse transform is found and the lane and the lane lines are transformed back into the original camera coordinates. The result is as follows:
 
-![alt text][image6]
+<p align="center">
+  <img src="./output_images/test-1-f2-lane-lines.png" width="40%"/>
+  <p align="center">Lane detection in "birds-eye" perspective</p>
+</p>
+
+<p align="center">
+  <img src="./output_images/test-1-f2-final.png" width="40%"/>
+  <p align="center">Lane detection overlaid on original image</p>
+</p>
+
+The function responsible for warping the lanes back to the original coordinates is as follows:
+
+* `pipeline.Pipeline.warp_perspective_to_original` - Line 597
+
 
 ---
 
@@ -297,7 +340,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 > [1] Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](https://www.youtube.com/watch?v=eja2tgqg1TM)
 
 ---
 
@@ -305,4 +348,10 @@ Here's a [link to my video result](./project_video.mp4)
 
 > [1] Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+One of the biggest problems I faced was dealing with differing lighting conditions though the video. The lane curve detections would often go hay-wire.
+
+To combat this problem, I had to find a good combination of different binary images (discussed in the appropriate section).
+
+A second solution to the problem was to superimpose the points along the fit of the previous frame on top of the binary thresholded image of the current frame. This was one of the most important steps in correcting the lane detections under shadows and differing lighting conditions.
+
+The pipeline might fail if the lane lines are more curved (as is in the challenge videos). The pipeline can be made more robust by implementing an advanced form of using the previous frame detections or creating advanced priors/heuristics so that algorithm inherently knows where to find a line.
