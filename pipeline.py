@@ -664,6 +664,14 @@ class Pipeline:
         self.left_lane.radius_of_curvature = compute_radius_of_curvature(left_fit_cr, np.max(self.left_lane.ally)*ym_per_pix)
         self.right_lane.radius_of_curvature = compute_radius_of_curvature(right_fit_cr, np.max(self.right_lane.ally)*ym_per_pix)
 
+        roc = self.left_lane.radius_of_curvature
+
+        if np.abs(1000 - self.left_lane.radius_of_curvature) > np.abs(1000 - self.right_lane.radius_of_curvature):
+            roc = self.right_lane.radius_of_curvature
+
+        if roc < 2000:
+            self.radius_array.append(roc)
+
         # Now our radius of curvature is in meters
         # print(self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature)
         # Example values: 632.1 m    626.2 m
@@ -695,7 +703,7 @@ class Pipeline:
 
     def add_text(self):
         font = cv2.FONT_HERSHEY_SIMPLEX
-        avg_lc = np.min([self.left_lane.radius_of_curvature, self.right_lane.radius_of_curvature])
+        avg_lc = np.median(self.radius_array)
         cv2.putText(self.result_image, 'Radius of Curvature of the Lane: {0:.2f}m'.format(avg_lc),
                     (50, 100),
                     font, 1, (255, 255, 255), 2, cv2.LINE_AA)
