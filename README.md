@@ -21,7 +21,7 @@ The goals / steps of this project are the following:
 
 The following section contains an overview of the structure of the code and addresses all the rubric points/questions.
 
-** Source Code Overview **
+### Source Code Overview
 
 The source code is mainly divided between the following files:
 * `calibrate.py`:
@@ -39,7 +39,7 @@ The source code is mainly divided between the following files:
 * `output_images/`:
   * Folder that contains all the intermediate result images that are used in this report.
 
-** Camera Calibration **
+### Camera Calibration
 
 > [1] Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
