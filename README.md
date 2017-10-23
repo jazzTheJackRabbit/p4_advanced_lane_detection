@@ -342,6 +342,10 @@ The function responsible for warping the lanes back to the original coordinates 
 
 Here's a [link to my video result](https://youtu.be/jqyMV83VSoc)
 
+The video is also included in the repository, at the following relative path:
+
+* `./output/project_video.mp4`
+
 ---
 
 ### Discussion
