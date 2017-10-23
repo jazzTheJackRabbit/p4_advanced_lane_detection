@@ -743,7 +743,7 @@ class Pipeline:
 
         self.warp_perspective_to_original()
 
-        self.add_text()
+        # self.add_text()
         if show:
             self.show_image()
             

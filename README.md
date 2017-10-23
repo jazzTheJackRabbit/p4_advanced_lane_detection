@@ -1,10 +1,10 @@
-## SDC - Project 4
+## SDC - Project 4 ([Video](https://youtu.be/jqyMV83VSoc))
 
 ### Report
 
 ---
 
-**Advanced Lane Finding Project**
+## Advanced Lane Finding Project
 
 The goals / steps of this project are the following:
 
@@ -17,13 +17,12 @@ The goals / steps of this project are the following:
 * Warp the detected lane boundaries back onto the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
----
-
-** [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points **
+## [Rubric Points](https://review.udacity.com/#!/rubrics/571/view)
 
 The following section contains an overview of the structure of the code and addresses all the rubric points/questions.
 
 ** Source Code Overview **
+
 The source code is mainly divided between the following files:
 * `calibrate.py`:
   * Contains code to calibrate and correct the camera lens' distortion
@@ -45,10 +44,10 @@ The source code is mainly divided between the following files:
 > [1] Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
 The code for this step is contained in the following function:
-* `camera_calibration.calibrate`
+* `camera_calibration.calibrate` - Line 16
 
 
-The function takes in a path to a set of calibration and performs the following steps:
+The function takes in a path to a set of calibration images and performs the following steps:
 
 * `imagepoints` (which represent the points in the image space) and the `objpoints` (which represent the points in the transformed/calibrated space) are first prepared. For each image in the set of calibration images, which consist of chessboard patterns, the image is converted into gray scale and the corners of the chessboard are found.
 
@@ -97,7 +96,7 @@ An example of the distortion correction applied to a test image using the calibr
 > [2] Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 The pipeline method responsible for creating the color and gradient transforms is as follows:
-* `Pipeline.color_gradient_threshold_transform`
+* `Pipeline.color_gradient_threshold_transform` - Line 216
 
 The above method creates the following variables:
 * `R_binary`
@@ -178,7 +177,7 @@ To perform the perspective transformation, a small section of the thresholded im
 </p>
 
 The pipeline method responsible for creating the color and gradient transforms is as follows:
-* `Pipeline.perspective_transform` - Line 298
+* `Pipeline.perspective_transform` - Line 302
 
 It uses two sets of points:
 * `src` - The corners of the mask in the thresholded image.
@@ -241,6 +240,10 @@ I verified that my perspective transform was working as expected by drawing the 
 
 > [4] Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
+The part of the code responsible for detecting lines is as follows:
+* `pipeline.Pipeline.detect_lane_lines` - Line 323 - Detects lane line on the first frame
+* `pipeline.Pipeline.detect_lane_lines_with_prior` - Line 455 - Detects lane line on all the future frames by using the previous frame's lane line fit.
+
 To identify the lane lines I implemented a method to use the perspective transformed image to detect lane lines by:
 * Finding a histogram of raw intensities for the bottom half of the image
 
@@ -286,15 +289,11 @@ To identify the lane lines I implemented a method to use the perspective transfo
     </p>
 
 
-The part of the code responsible for detecting lines is as follows:
-* `pipeline.Pipeline.detect_lane_lines` - Detects lane line on the first frame
-* `pipeline.Pipeline.detect_lane_lines_with_prior` - - Detects lane line on all the future frames by using the previous frame's lane line fit.
-
 Once we have the first frame's lane line fit, we consider the issues and solutions for the frames after the first lane line detection has been made:
 
 * One problem that I came across here was that despite fitting the lane lines accurately in the first frame, future frames were not always guaranteed to have an accurate fit for either of the lines, due to change in the curvature of the road.
 
-* A solution to this problem was to use the fit from the previous frame and create points along the fit on the new image, so, together with the points in the new frame, the resulting point distribution would be closer to the actual lane line.
+* A solution to this problem was to use the fit from the previous frame and super impose points along the fit on the new image, so, together with the points in the new frame, the resulting point distribution would be closer to the actual lane line.
 
 <p align="center">
   <img src="./output_images/test-1-f2-threshold.png" width="40%"/>
@@ -306,15 +305,15 @@ Once we have the first frame's lane line fit, we consider the issues and solutio
   <p align="center">The previous frame's fit points superimposed on the second frame</p>
 </p>
 
-* Additionally, instead of re-running the stepping through all the windows, we can use the points from the previous frame's lane line fit and search within a margin.
+* Additionally, instead of re-stepping through all the windows, we can use the points from the previous frame's lane line fit and search within a margin.
 
 > [5] Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 The functions responsible for computing the radius of curvature and the camera offsets are as follows:
 
-* `pipeline.Pipeline.compute_radius_of_curvature_for_fit` - Line 633
-* `pipeline.Pipeline.compute_radius_of_curvature_for_fit_in_meters` - Line 642
-* `pipeline.Pipeline.compute_camera_offset` - Line 668
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit` - Line 642
+* `pipeline.Pipeline.compute_radius_of_curvature_for_fit_in_meters` - Line 651
+* `pipeline.Pipeline.compute_camera_offset` - Line 685
 
 > [6] Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
@@ -332,7 +331,7 @@ Once the lane and the lane lines are detected in the "birds-eye" perspective, th
 
 The function responsible for warping the lanes back to the original coordinates is as follows:
 
-* `pipeline.Pipeline.warp_perspective_to_original` - Line 597
+* `pipeline.Pipeline.warp_perspective_to_original` - Line 608
 
 
 ---
@@ -341,7 +340,7 @@ The function responsible for warping the lanes back to the original coordinates 
 
 > [1] Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](https://www.youtube.com/watch?v=eja2tgqg1TM)
+Here's a [link to my video result](https://youtu.be/jqyMV83VSoc)
 
 ---
 
